@@ -9,7 +9,7 @@ import { MatStepper } from '@angular/material/stepper';
 import { faExclamationTriangle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 import { Peer } from '../../../shared/models/eclModels';
-import { APICallStatusEnum, ECLActions } from '../../../shared/services/consts-enums-functions';
+import { APICallStatusEnum, ECLActions, getEclFundingFeeBudget } from '../../../shared/services/consts-enums-functions';
 import { ECLOpenChannelAlert } from '../../../shared/models/alertData';
 import { LoggerService } from '../../../shared/services/logger.service';
 import { RecommendedFeeRates } from '../../../shared/models/rtlModels';
@@ -68,6 +68,7 @@ export class ECLConnectPeerComponent implements OnInit, OnDestroy {
       fundingAmount: ['', [Validators.required, Validators.min(1), Validators.max(this.totalBalance)]],
       isPrivate: [!!this.selNode?.settings.unannouncedChannels],
       feeRate: [null],
+      feeBudget: [null, [Validators.min(1)]],
       hiddenAmount: ['', [Validators.required]]
     });
     this.statusFormGroup = this.formBuilder.group({});
@@ -115,9 +116,17 @@ export class ECLConnectPeerComponent implements OnInit, OnDestroy {
     this.store.dispatch(saveNewPeer({ payload: { id: this.peerFormGroup.controls.peerAddress.value } }));
   }
 
+  // The budget eclair is given when the field is left blank; see getEclFundingFeeBudget.
+  defaultFeeBudget(): number {
+    return getEclFundingFeeBudget(this.channelFormGroup?.controls.fundingAmount.value);
+  }
+
   onOpenChannel(): boolean | void {
     if (this.channelFormGroup.controls.feeRate.value && this.recommendedFee.minimumFee > this.channelFormGroup.controls.feeRate.value) {
       this.channelFormGroup.controls.feeRate.setErrors({ minimum: true });
+      return true;
+    }
+    if (this.channelFormGroup.controls.feeBudget.invalid) {
       return true;
     }
     if (!this.channelFormGroup.controls.fundingAmount.value || ((this.totalBalance - this.channelFormGroup.controls.fundingAmount.value) < 0)) {
@@ -126,7 +135,8 @@ export class ECLConnectPeerComponent implements OnInit, OnDestroy {
     this.channelConnectionError = '';
     this.store.dispatch(saveNewChannel({
       payload: {
-        nodeId: this.newlyAddedPeer?.nodeId!, amount: this.channelFormGroup.controls.fundingAmount.value, private: this.channelFormGroup.controls.isPrivate.value, feeRate: this.channelFormGroup.controls.feeRate.value
+        nodeId: this.newlyAddedPeer?.nodeId!, amount: this.channelFormGroup.controls.fundingAmount.value, private: this.channelFormGroup.controls.isPrivate.value, feeRate: this.channelFormGroup.controls.feeRate.value,
+        feeBudget: this.channelFormGroup.controls.feeBudget.value || this.defaultFeeBudget()
       }
     }));
   }

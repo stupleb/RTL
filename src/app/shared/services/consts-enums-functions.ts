@@ -1409,3 +1409,15 @@ export function getFeeLimitSat(selFeeLimitTypeID: string, feeLimit: number, amou
   }
   return 1000000;
 }
+
+// Eclair caps the mining fee of a funding transaction at fundingFeeBudgetSatoshis and refuses the open when
+// the fee comes out higher. A caller that sends no budget gets 0.1% of the channel amount, which a funding
+// transaction at the 1 sat/vB floor already exceeds for any channel under ~170,000 sats, and which a higher
+// fee rate exceeds for much larger ones. RTL therefore sends a budget with every open: what the user typed,
+// or 1% of the amount with a floor that covers a floor-rate transaction with several inputs.
+export const ECL_FUNDING_FEE_BUDGET_FRACTION = 0.01;
+export const ECL_FUNDING_FEE_BUDGET_MIN_SATS = 2000;
+
+export function getEclFundingFeeBudget(amount?: number | null): number {
+  return Math.max(Math.ceil((amount || 0) * ECL_FUNDING_FEE_BUDGET_FRACTION), ECL_FUNDING_FEE_BUDGET_MIN_SATS);
+}

@@ -8,7 +8,7 @@ import { Actions } from '@ngrx/effects';
 import { faExclamationTriangle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 import { Peer, GetInfo, SaveChannel } from '../../../../shared/models/eclModels';
-import { APICallStatusEnum, ECLActions } from '../../../../shared/services/consts-enums-functions';
+import { APICallStatusEnum, ECLActions, getEclFundingFeeBudget } from '../../../../shared/services/consts-enums-functions';
 import { ECLOpenChannelAlert } from '../../../../shared/models/alertData';
 
 import { RTLState } from '../../../../store/rtl.state';
@@ -45,6 +45,7 @@ export class ECLOpenChannelComponent implements OnInit, OnDestroy {
   public selectedPubkey = '';
   public isPrivate = false;
   public feeRate: number | null = null;
+  public feeBudget: number | null = null;
   public recommendedFee: RecommendedFeeRates = { fastestFee: 0, halfHourFee: 0, hourFee: 0 };
   private unSubs: Array<Subject<void>> = [new Subject(), new Subject(), new Subject(), new Subject()];
 
@@ -123,8 +124,14 @@ export class ECLOpenChannelComponent implements OnInit, OnDestroy {
     this.dialogRef.close(false);
   }
 
+  // The budget eclair is given when the field is left blank; see getEclFundingFeeBudget.
+  defaultFeeBudget(): number {
+    return getEclFundingFeeBudget(this.fundingAmount);
+  }
+
   resetData() {
     this.feeRate = null;
+    this.feeBudget = null;
     this.selectedPeer.setValue('');
     this.fundingAmount = null;
     this.isPrivate = !!this.selNode?.settings.unannouncedChannels;
@@ -138,6 +145,9 @@ export class ECLOpenChannelComponent implements OnInit, OnDestroy {
     if (isClosed) {
       if (this.feeRate && this.feeRate > 0) {
         this.advancedTitle = this.advancedTitle + ' | Fee (Sats/vByte): ' + this.feeRate;
+      }
+      if (this.feeBudget && this.feeBudget > 0) {
+        this.advancedTitle = this.advancedTitle + ' | Fee Budget (Sats): ' + this.feeBudget;
       }
     } else {
       this.dataService.getRecommendedFeeRates().pipe(takeUntil(this.unSubs[3])).subscribe({
@@ -154,12 +164,14 @@ export class ECLOpenChannelComponent implements OnInit, OnDestroy {
     if (
       (!this.peer && !this.selectedPubkey) ||
       (!this.fundingAmount || ((this.totalBalance - this.fundingAmount) < 0)) ||
-      (this.feeRate && this.recommendedFee.minimumFee > this.feeRate)
+      (this.feeRate && this.recommendedFee.minimumFee > this.feeRate) ||
+      (this.feeBudget !== null && this.feeBudget < 1)
     ) {
       return true;
     }
     const saveChannelPayload: SaveChannel = { nodeId: ((!this.peer || !this.peer.nodeId) ? this.selectedPubkey : this.peer.nodeId), amount: this.fundingAmount, private: this.isPrivate };
     if (this.feeRate) { saveChannelPayload['feeRate'] = this.feeRate; }
+    saveChannelPayload['feeBudget'] = (this.feeBudget && this.feeBudget > 0) ? this.feeBudget : this.defaultFeeBudget();
     this.store.dispatch(saveNewChannel({ payload: saveChannelPayload }));
   }
 

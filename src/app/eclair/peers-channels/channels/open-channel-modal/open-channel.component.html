@@ -62,6 +62,12 @@
                     <mat-hint>Mempool Min: {{recommendedFee.minimumFee}} (Sats/vByte)</mat-hint>
                     <mat-error *ngIf="feeRate && feeRate < recommendedFee.minimumFee">Lower than min feerate {{recommendedFee.minimumFee}} in the mempool.</mat-error>
                   </mat-form-field>
+                  <mat-form-field fxLayout="column" fxFlex="49">
+                    <mat-label>Fee Budget (Sats)</mat-label>
+                    <input #feeBudgetInput="ngModel" matInput type="number" name="feeBudget" tabindex="8" [step]="100" [min]="1" [(ngModel)]="feeBudget">
+                    <mat-hint>Max mining fee for the funding tx. Default: {{defaultFeeBudget()}}</mat-hint>
+                    <mat-error *ngIf="feeBudget !== null && feeBudget < 1">Must be at least 1 sat.</mat-error>
+                  </mat-form-field>
                 </div>
               </div>
             </div>

@@ -238,6 +238,7 @@ export interface SaveChannel {
   amount: number;
   private: boolean;
   feeRate?: number;
+  feeBudget?: number;
 }
 
 export interface UpdateChannel {

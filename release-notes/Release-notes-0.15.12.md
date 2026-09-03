@@ -55,6 +55,21 @@ this release should add its entry under the appropriate section below.
   `X-Forwarded-For`, which a client can rotate to dodge the limit — needs a decision on
   trusted-proxy configuration and is left open.
 
+- **Eclair: channel opens now send a funding fee budget**
+  ([#PR_NUMBER](https://github.com/Ride-The-Lightning/RTL/pull/PR_NUMBER)).
+  Eclair caps the mining fee of a funding transaction at `fundingFeeBudgetSatoshis` and refuses the
+  open when the fee comes out higher. RTL never sent one, so Eclair fell back to its default of 0.1%
+  of the channel amount — a bound that a funding transaction at the 1 sat/vB floor already breaks
+  for any channel under about 170,000 sats, and that a higher fee rate breaks for far larger ones
+  (at 5 sat/vB, anything under roughly 835,000 sats). Every such open failed with
+  `wallet error: requirement failed: mining fee is higher than budget (167 sat > 25 sat)`, and until
+  the fix that reports a failed open it looked like a success. The open-channel dialog and the
+  connect-peer wizard now send a budget with every open: a "Fee Budget (Sats)" field in the advanced
+  options, and when it is blank, 1% of the channel amount with a floor of 2,000 sats, shown next to
+  the field. The default is a ceiling, not a spend — a funding transaction at today's rates costs a
+  few hundred sats, and the budget is there to stop a fee-estimate spike from eating the channel.
+  Eclair 0.10.0 introduced the field; older nodes ignore it.
+
 ## Enhancements
 
 - **LND: open a channel with the entire wallet balance**
